@@ -1,0 +1,17 @@
+<!DOCTYPE module SYSTEM "module.dtd">
+
+<module name="morsegen">
+  <doc>
+    <description>This module is designed to send a morse code signal via a GPIO port. The application is particularily developed to toggle and E/D pin of an RF TX</description>
+  </doc>
+  <define name="DC_SHUTTER_GPIO" value="GPIOC,GPIO12"/>
+  <header>
+    <file name="morsegen.h"/>
+  </header>
+  <init fun="morse_init()"/>
+  <periodic fun="30min_signal()" freq="30" autorun="TRUE"/>
+  <event fun="sendmorse()"/>
+  <makefile>
+    <file name="morsegen.c"/>
+  </makefile>
+</module>
