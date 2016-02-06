@@ -30,6 +30,5 @@
  extern void txt2morse();
  extern void runner();
  extern void toggle();
-// extern void sendmorse();
 
 #endif

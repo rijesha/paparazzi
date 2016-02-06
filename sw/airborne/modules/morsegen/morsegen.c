@@ -27,6 +27,7 @@
 
 #include <stdio.h>
 #include <string.h>
+#include <ctype.h>
 #include "modules/morsegen/morsegen.h"
 #include "mcu_periph/gpio.h"
 
@@ -42,7 +43,7 @@
 #endif
 
 #ifndef MORSE_GPIO_PIN
-#define MORSE_GPIO_PIN    LED12
+#define MORSE_GPIO_PIN    GPIO3
 #endif
 
 #ifndef GPIO_CLC
@@ -53,7 +54,7 @@
 /** Input String **/
 
 #ifndef MESSAGE
-#define MESSAGE    "Hello World"
+#define MESSAGE "Hello World"
 #endif
 
 #ifndef MESSAGE_LENGTH
@@ -61,7 +62,7 @@
 #endif
 
 #ifndef MORSE_STRING_LENGTH
-#define MORSE_STRING_LENGTH    MESSAGE_LENGTH * 6
+#define MORSE_STRING_LENGTH    MESSAGE_LENGTH*6
 #endif
 
 /** Morse timing */
@@ -91,17 +92,18 @@
 
 
 
-static char message[MESSAGE_LENGTH] = MESSAGE;
+static char message[MESSAGE_LENGTH];
 static char morsemsg[MORSE_STRING_LENGTH];
 static int  status;      // if hi
-static int  arrpos;
+static unsigned int  arrpos;
 static int  enabled;
 static int  running;
 
 void morse_init()
 {
+    strncpy(message, "hello", MESSAGE_LENGTH);
     gpio_setup_output(GPIO_CLC, MORSE_GPIO_PIN);
-    ENABLE(MORSE_GPIO_PIN);
+    ENABLE(GPIO_CLC,MORSE_GPIO_PIN);
     enabled = 1;
     txt2morse();
     running = 0;
@@ -109,7 +111,7 @@ void morse_init()
 }
 
 
-int runner()
+void runner()
 {
     if (running > 1)
     {
@@ -171,7 +173,6 @@ int runner()
                 break;
         }
     }
-    return 0;
 }
 
 
@@ -179,12 +180,12 @@ void toggle()
 {
     if (enabled == 1)
     {
-        DISABLE(MORSE_GPIO_PIN);
+        DISABLE(GPIO_CLC,MORSE_GPIO_PIN);
         enabled = 0;
     }
     else
     {
-        ENABLE(MORSE_GPIO_PIN);
+        ENABLE(GPIO_CLC,MORSE_GPIO_PIN);
         enabled = 1;
     }
 }
@@ -192,7 +193,7 @@ void toggle()
 
 void txt2morse()
 {
-    int i;
+    unsigned int i;
     int j = 0;
 
     for (i = 0; i <= strlen(message); i++)
