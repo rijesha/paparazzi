@@ -56,8 +56,8 @@
   
   <servos><!--the servos the outpilot autoputs commands output to-->
     <servo name="THROTTLE" max="2000" neutral="1000" min="1000" no="0"/> 
-    <servo name="ELEVON_RIGHT" max="1800" neutral="1500" min="1200" no="2"/>
-    <servo name="ELEVON_LEFT" max="1800" neutral="1500" min="1200" no="1"/>
+    <servo name="ELEVON_RIGHT" max="1825" neutral="1425" min="1025" no="2"/>
+    <servo name="ELEVON_LEFT" max="1850" neutral="1450" min="1050" no="1"/>
 
   </servos>
   

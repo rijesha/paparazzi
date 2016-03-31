@@ -43,7 +43,7 @@
 #endif
 
 #ifndef MORSE_GPIO_PIN
-#define MORSE_GPIO_PIN    GPIO3
+#define MORSE_GPIO_PIN    GPIO12
 #endif
 
 #ifndef GPIO_CLC
@@ -54,7 +54,7 @@
 /** Input String **/
 
 #ifndef MESSAGE
-#define MESSAGE "Hello World"
+#define MESSAGE "VE6RSW"
 #endif
 
 #ifndef MESSAGE_LENGTH
@@ -201,21 +201,21 @@ void txt2morse()
         switch (toupper(message[i]))
         {
             case 'A':
-                morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
                 morsemsg[j]   = '.';
                 break;
 
             case 'B':
-                morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
                 morsemsg[j]   = '.';
                 break;
 
             case 'c':
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
                 morsemsg[j]   = '.';
                 break;
 
@@ -232,13 +232,13 @@ void txt2morse()
             case 'F':
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
                 morsemsg[j]   = '.';
                 break;
 
             case 'G':
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
                 morsemsg[j]   = '.';
                 break;
 
@@ -256,15 +256,15 @@ void txt2morse()
 
             case 'J':
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j]   = '.';
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
+                morsemsg[j]   = '-';
                 break;
 
             case 'K':
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j]   = '.';
+                morsemsg[j]   = '-';
                 break;
 
             case 'L':
@@ -301,7 +301,7 @@ void txt2morse()
                 morsemsg[j++] = '-';
                 morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
-                morsemsg[j]   = '.';
+                morsemsg[j]   = '-';
                 break;
 
             case 'R':
@@ -323,7 +323,7 @@ void txt2morse()
             case 'U':
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
-                morsemsg[j]   = '.';
+                morsemsg[j]   = '-';
                 break;
 
             case 'V':
@@ -350,12 +350,12 @@ void txt2morse()
                 morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '-';
-                morsemsg[j]   = '.';
+                morsemsg[j]   = '-';
                 break;
 
             case 'Z':
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
                 morsemsg[j]   = '.';
                 break;
@@ -370,7 +370,7 @@ void txt2morse()
 
             case '1':
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '-';
                 morsemsg[j++] = '-';
                 morsemsg[j]   = '-';
@@ -379,8 +379,9 @@ void txt2morse()
             case '2':
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j]   = '.';
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
+                morsemsg[j]   = '-';
                 break;
 
             case '3':
@@ -388,7 +389,7 @@ void txt2morse()
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '-';
-                morsemsg[j]   = '.';
+                morsemsg[j]   = '-';
                 break;
 
             case '4':
@@ -408,27 +409,27 @@ void txt2morse()
                 break;
 
             case '6':
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j]   = '-';
+                morsemsg[j]   = '.';
                 break;
 
             case '7':
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j]   = '-';
+                morsemsg[j]   = '.';
                 break;
 
             case '8':
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j]   = '-';
+                morsemsg[j]   = '.';
                 break;
 
             case '9':
@@ -441,38 +442,38 @@ void txt2morse()
 
             case '.':
                 morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
                 morsemsg[j]   = '-';
                 break;
 
             case ',':
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
                 morsemsg[j]   = '-';
                 break;
 
             case ':':
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j]   = '-';
+                morsemsg[j]   = '.';
                 break;
 
             case '?':
                 morsemsg[j++] = '.';
                 morsemsg[j++] = '.';
+                morsemsg[j++] = '-';
+                morsemsg[j++] = '-';
                 morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j++] = '.';
-                morsemsg[j]   = '-';
+                morsemsg[j]   = '.';
                 break;
 
             /* case '\';
