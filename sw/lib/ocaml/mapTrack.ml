@@ -128,7 +128,7 @@ object (self)
   val mutable v_params_on = false
   val mutable desired_track = NoDesired
   val zone = GnoCanvas.rect group
-  val mutable ac_cam_cover = GnoCanvas.rect ~fill_color:"grey" ~props:[`WIDTH_PIXELS 1 ; `FILL_STIPPLE (Gdk.Bitmap.create_from_data ~width:2 ~height:2 "\002\001")] cam
+  val mutable ac_cam_cover = GnoCanvas.polygon ~fill_color:"grey" ~props:[`WIDTH_PIXELS 1 ; `FILL_STIPPLE (Gdk.Bitmap.create_from_data ~width:2 ~height:2 "\002\001")] cam
   val mutable event_cb = None
   val mutable destroyed = false
   method color = color
@@ -276,9 +276,10 @@ object (self)
     zone#set [`X1 x1; `Y1 y1; `X2 x2; `Y2 y2; `OUTLINE_COLOR "#ffc0c0"; `WIDTH_PIXELS 2]
 
     (** moves the rectangle representing the field covered by the camera *)
-  method move_cam = fun cam_wgs84 mission_target_wgs84 ->
+  method move_cam = fun positions mission_target_wgs84 ->
     match last, cam_on with
         Some last_ac, true ->
+          let cam_wgs84 = positions.(0) in
           let (cam_xw, cam_yw) = geomap#world_of cam_wgs84
           and (last_xw, last_yw) = geomap#world_of last_ac
           and last_height_scaled = self#height () in
@@ -310,12 +311,10 @@ object (self)
             else max_cam_half_height_scaled in
           let cam_field_half_height_2 = d -. (tan ( angle_of_view -. cam_half_aperture)) *. last_height_scaled in
           let cam_field_half_width = ( tan (cam_half_aperture) ) *. oblic_distance in
-          ac_cam_cover#set [`X1 (-. cam_field_half_width);
-                            `Y1 (-. cam_field_half_height_1);
-                            `X2 (cam_field_half_width);
-                            `Y2(cam_field_half_height_2);
+          let points = geomap#convert_positions_to_points positions in
+          ac_cam_cover#set [`POINTS points;
                             `OUTLINE_COLOR color];
-          cam#affine_absolute (affine_pos_and_angle 1.0 cam_xw cam_yw cam_heading);
+          cam#affine_absolute points;
           let (mission_target_xw, mission_target_yw) = geomap#world_of mission_target_wgs84 in
           mission_target#affine_absolute (affine_pos_and_angle geomap#zoom_adj#value mission_target_xw mission_target_yw 0.0)
       | _ -> ()
