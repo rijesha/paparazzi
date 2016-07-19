@@ -186,10 +186,9 @@ let send_cam_status = fun a ->
           let wgs84 = Aircraft.add_pos_to_nav_ref (Geo a.pos) (east, north) in
           let twgs84 = Aircraft.add_pos_to_nav_ref nav_ref a.cam.target in
           let values = ["ac_id", PprzLink.String a.id;
-                        "cam_lat", PprzLink.Float ((Rad>>Deg)wgs84.posn_lat);
-                        "cam_long", PprzLink.Float ((Rad>>Deg)wgs84.posn_long);
-                        "cam_target_lat", PprzLink.Float ((Rad>>Deg)twgs84.posn_lat);
-                        "cam_target_long", PprzLink.Float ((Rad>>Deg)twgs84.posn_long)] in
+                        "cam_abs_phi", PprzLink.Float ((Rad>>Deg)wgs84.posn_lat);
+                        "cam_abs_theta", PprzLink.Float ((Rad>>Deg)wgs84.posn_long);
+                        "cam_abs_yaw", PprzLink.Float ((Rad>>Deg)twgs84.posn_lat)] in
           Ground_Pprz.message_send my_id "CAM_STATUS" values
 
 let send_if_calib = fun a ->

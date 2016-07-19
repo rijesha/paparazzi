@@ -279,38 +279,6 @@ object (self)
   method move_cam = fun positions mission_target_wgs84 ->
     match last, cam_on with
         Some last_ac, true ->
-          let cam_wgs84 = positions.(0) in
-          let (cam_xw, cam_yw) = geomap#world_of cam_wgs84
-          and (last_xw, last_yw) = geomap#world_of last_ac
-          and last_height_scaled = self#height () in
-
-          let pt1 = { G2d.x2D = last_xw; y2D = last_yw} in
-          let pt2 = { G2d.x2D = cam_xw ; y2D = cam_yw } in
-
-      (** y axis is downwards so North vector is as follows: *)
-          let vect_north = { G2d.x2D = 0.0 ; y2D = -1.0 } in
-          let d = G2d.distance pt1 pt2 in
-          let cam_heading =
-            if d > min_distance_scaled then
-              let cam_vect_normalized = (G2d.vect_normalize (G2d.vect_make pt1 pt2)) in
-              if (G2d.dot_product vect_north cam_vect_normalized) > 0.0 then
-                norm_angle_360 ( G2d.rad2deg (asin (G2d.cross_product vect_north cam_vect_normalized)))
-              else norm_angle_360 ( G2d.rad2deg (G2d.m_pi -. asin (G2d.cross_product vect_north cam_vect_normalized)))
-            else last_heading in
-          let (angle_of_view, oblic_distance) =
-            if last_height_scaled < min_height_scaled then
-              (half_pi, max_oblic_distance_scaled)
-            else
-              let oav = atan ( d /. last_height_scaled) in
-              (oav, last_height_scaled /. (cos oav))
-          in
-          let alpha_1 = angle_of_view +. cam_half_aperture in
-          let cam_field_half_height_1 =
-            if alpha_1 < half_pi then
-              (tan alpha_1) *. last_height_scaled -. d
-            else max_cam_half_height_scaled in
-          let cam_field_half_height_2 = d -. (tan ( angle_of_view -. cam_half_aperture)) *. last_height_scaled in
-          let cam_field_half_width = ( tan (cam_half_aperture) ) *. oblic_distance in
           let points = geomap#convert_positions_to_points positions in
           ac_cam_cover#set [`POINTS points;
                             `OUTLINE_COLOR color];

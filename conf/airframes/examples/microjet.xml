@@ -201,6 +201,9 @@
 
   <section name="GCS">
     <define name="AC_ICON" value="flyingwing"/>
+    <define name="CAM_HFV" value="63.3"/>
+    <define name="CAM_VFV" value="48.9"/>
+    
   </section>
 
   <firmware name="setup">
