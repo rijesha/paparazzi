@@ -25,10 +25,11 @@
 #include "subsystems/imu.h"
 #include "mcu_periph/spi.h"
 
+
 struct high_speed_logger_spi_link_data high_speed_logger_spi_link_data;
 struct spi_transaction high_speed_logger_spi_link_transaction;
 
-static volatile bool_t high_speed_logger_spi_link_ready = TRUE;
+static volatile bool high_speed_logger_spi_link_ready = true;
 
 static void high_speed_logger_spi_link_trans_cb(struct spi_transaction *trans);
 
@@ -54,7 +55,7 @@ void high_speed_logger_spi_link_init(void)
 void high_speed_logger_spi_link_periodic(void)
 {
   if (high_speed_logger_spi_link_ready) {
-    high_speed_logger_spi_link_ready = FALSE;
+    high_speed_logger_spi_link_ready = false;
     high_speed_logger_spi_link_data.gyro_p     = imu.gyro_unscaled.p;
     high_speed_logger_spi_link_data.gyro_q     = imu.gyro_unscaled.q;
     high_speed_logger_spi_link_data.gyro_r     = imu.gyro_unscaled.r;
@@ -73,7 +74,7 @@ void high_speed_logger_spi_link_periodic(void)
 
 static void high_speed_logger_spi_link_trans_cb(struct spi_transaction *trans __attribute__((unused)))
 {
-  high_speed_logger_spi_link_ready = TRUE;
+  high_speed_logger_spi_link_ready = true;
 }
 
 

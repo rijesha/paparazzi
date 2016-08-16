@@ -122,7 +122,7 @@ let localize_waypoint = fun rel_utm_of_wgs84 waypoint ->
         waypoint
 
 
-let print_waypoint = fun default_alt waypoint ->
+let print_waypoint_utm = fun default_alt waypoint ->
   let (x, y) = (float_attrib waypoint "x", float_attrib waypoint "y")
   and alt = try sof (float_attrib waypoint "height" +. !ground_alt) with _ -> default_alt in
   let alt = try Xml.attrib waypoint "alt" with _ -> alt in
@@ -213,12 +213,16 @@ let pprz_throttle = fun s ->
 (********************* Vertical control ********************************************)
 let output_vmode = fun stage_xml wp last_wp ->
   let pitch = try Xml.attrib stage_xml "pitch" with _ -> "0.0" in
-  if pitch = "auto"
+  if String.lowercase (Xml.tag stage_xml) <> "manual"
   then begin
-    lprintf "NavVerticalAutoPitchMode(%s);\n" (pprz_throttle (parsed_attrib stage_xml "throttle"))
-  end else begin
-    lprintf "NavVerticalAutoThrottleMode(RadOfDeg(%s));\n" (parse pitch);
+    if pitch = "auto"
+    then begin
+      lprintf "NavVerticalAutoPitchMode(%s);\n" (pprz_throttle (parsed_attrib stage_xml "throttle"))
+    end else begin
+      lprintf "NavVerticalAutoThrottleMode(RadOfDeg(%s));\n" (parse pitch);
+    end
   end;
+
   let vmode = try ExtXml.attrib stage_xml "vmode" with _ -> "alt" in
   begin
     match vmode with
@@ -299,8 +303,8 @@ let rec index_stage = fun x ->
         let l = List.map index_stage (Xml.children x) in
         incr stage; (* To count the loop stage *)
         Xml.Element (Xml.tag x, Xml.attribs x@["no", soi n], l)
-      | "return" | "goto"  | "deroute" | "exit_block" | "follow" | "call" | "home"
-      | "heading" | "attitude" | "go" | "stay" | "xyz" | "set" | "circle" ->
+      | "return" | "goto"  | "deroute" | "exit_block" | "follow" | "call" | "call_once" | "home"
+      | "heading" | "attitude" | "manual" | "go" | "stay" | "xyz" | "set" | "circle" ->
         incr stage;
         Xml.Element (Xml.tag x, Xml.attribs x@["no", soi !stage], Xml.children x)
       | "survey_rectangle" | "eight" | "oval"->
@@ -393,6 +397,20 @@ let rec print_stage = fun index_of_waypoints x ->
         end;
         right ();
         lprintf "NavAttitude(RadOfDeg(%s));\n" (parsed_attrib x "roll");
+        ignore (output_vmode x "" "");
+        left (); lprintf "}\n";
+        lprintf "break;\n"
+      | "manual" ->
+        stage ();
+        begin
+          try
+            let until = parsed_attrib x "until" in
+            lprintf "if (%s) NextStageAndBreak() else {\n" until;
+          with ExtXml.Error _ ->
+            lprintf "{\n"
+        end;
+        right ();
+        lprintf "NavSetManual(%s, %s, %s);\n" (parsed_attrib x "roll") (parsed_attrib x "pitch") (parsed_attrib x "yaw");
         ignore (output_vmode x "" "");
         left (); lprintf "}\n";
         lprintf "break;\n"
@@ -561,6 +579,18 @@ let rec print_stage = fun index_of_waypoints x ->
             end;
         | _ -> failwith "FP: 'call' loop attribute must be TRUE or FALSE"
         end
+      | "call_once" ->
+        (* call_once is an alias for <call fun="x" loop="false"/> *)
+        stage ();
+        let statement = ExtXml.attrib  x "fun" in
+        (* by default, go to next stage immediately *)
+        let break = String.uppercase (ExtXml.attrib_or_default x "break" "FALSE") in
+        lprintf "%s;\n" statement;
+        begin match break with
+        | "TRUE" -> lprintf "NextStageAndBreak();\n";
+        | "FALSE" -> lprintf "NextStage();\n";
+        | _ -> failwith "FP: 'call_once' break attribute must be TRUE or FALSE";
+        end;
       | "survey_rectangle" ->
         let grid = parsed_attrib x "grid"
         and wp1 = get_index_waypoint (ExtXml.attrib x "wp1") index_of_waypoints
@@ -702,7 +732,7 @@ let check_geo_ref = fun wgs84 xml ->
   let max_d = min 1000. (get_float "max_dist_from_home") in
   let check_zone = fun u ->
     if (utm_of WGS84 (of_utm WGS84 u)).utm_zone <> utm0.utm_zone then
-      prerr_endline "Warning: You are close (less than twice the max distance) to an UTM zone border ! The navigation will not work unless the GPS_USE_LATLONG flag is set and the GPS receiver configured to send the POSLLH message." in
+      prerr_endline "Warning: You are close (less than twice the max distance) to an UTM zone border ! The navigation will not work unless the GPS receiver configured to send the POSLLH message." in
   check_zone { utm0 with utm_x = utm0.utm_x +. 2.*.max_d };
   check_zone { utm0 with utm_x = utm0.utm_x -. 2.*.max_d };
 
@@ -747,7 +777,7 @@ let print_inside_polygon = fun pts ->
 
 let print_inside_polygon_global = fun pts ->
   lprintf "uint8_t i, j;\n";
-  lprintf "bool_t c = FALSE;\n";
+  lprintf "bool c = false;\n";
   (* build array of wp id *)
   let (ids, _) = List.split pts in
   lprintf "const uint8_t nb_pts = %d;\n" (List.length pts);
@@ -769,7 +799,7 @@ let print_inside_polygon_global = fun pts ->
 type sector_type = StaticSector | DynamicSector
 
 let print_inside_sector = fun t (s, pts) ->
-  lprintf "static inline bool_t %s(float _x, float _y) {\n" (inside_function s);
+  lprintf "static inline bool %s(float _x, float _y) {\n" (inside_function s);
   right ();
   begin
     match t with
@@ -796,12 +826,44 @@ let parse_wpt_sector = fun indexes waypoints xml ->
   (sector_name, List.map p2D_of (Xml.children xml))
 
 
+let parse_variables = fun xml ->
+  List.map (fun var ->
+    let v = ExtXml.attrib var "var"
+    and t = ExtXml.attrib_or_default var "type" "float"
+    and i = ExtXml.attrib_or_default var "init" "0" in
+    (t, v, i)
+  ) xml
+
+let write_settings = fun xml_file out_set variables ->
+  fprintf out_set "<!-- This file has been generated by gen_flight_plan from %s -->\n" xml_file;
+  fprintf out_set "<!-- Version %s -->\n" (Env.get_paparazzi_version ());
+  fprintf out_set "<!-- Please DO NOT EDIT -->\n\n";
+  fprintf out_set "<settings>\n";
+  fprintf out_set " <dl_settings>\n";
+  (* add tab only if their are some variables *)
+  if List.length variables > 0 then
+    fprintf out_set "   <dl_settings name=\"Flight Plan\">\n";
+  List.iter (fun v ->
+    let attribs = Xml.attribs v in
+    (* remove some incompatible attributes *)
+    let attribs = List.filter (fun (a, _) -> not (a = "init")) attribs in
+    let xml = Xml.Element ("dl_setting", attribs @ ["module", "generated/flight_plan"], []) in
+    fprintf out_set "     %s\n" (Xml.to_string xml);
+  ) variables;
+  if List.length variables > 0 then
+    fprintf out_set "   </dl_settings>\n";
+  fprintf out_set " </dl_settings>\n";
+  fprintf out_set "</settings>\n"
+
+
 (************************** MAIN ******************************************)
 let () =
   let xml_file = ref "fligh_plan.xml"
+  and set_file = ref None
   and dump = ref false in
   Arg.parse [ ("-check", Arg.Set check_expressions, "Enable expression checking");
-              ("-dump", Arg.Set dump, "Dump compile result") ]
+              ("-dump", Arg.Set dump, "Dump compile result");
+              ("-settings", Arg.String (fun f -> set_file := Some f), "Settings file for flight plan variables") ]
     (fun f -> xml_file := f)
     "Usage:";
   if !xml_file = "" then
@@ -822,12 +884,14 @@ let () =
 
     let xml = ExtXml.subst_child "blocks" (index_blocks (element "blocks" [] blocks)) xml in
     let waypoints = Xml.children (ExtXml.child xml "waypoints")
+    and variables = try Xml.children (ExtXml.child xml "variables") with _ -> []
     and blocks = Xml.children (ExtXml.child xml "blocks")
     and global_exceptions = try Xml.children (ExtXml.child xml "exceptions") with _ -> [] in
 
     let utm0 = utm_of WGS84 !fp_wgs84 in
     let rel_utm_of_wgs84 = fun wgs84 ->
-      let utm = utm_of WGS84 wgs84 in
+      (* force utm zone to be the same that reference point *)
+      let utm = utm_of ~zone:utm0.utm_zone WGS84 wgs84 in
       (utm.utm_x -. utm0.utm_x, utm.utm_y -. utm0.utm_y) in
     let waypoints =
       List.map (localize_waypoint rel_utm_of_wgs84) waypoints in
@@ -841,6 +905,7 @@ let () =
     else begin
       let h_name = "FLIGHT_PLAN_H" in
       printf "/* This file has been generated by gen_flight_plan from %s */\n" !xml_file;
+      printf "/* Version %s */\n" (Env.get_paparazzi_version ());
       printf "/* Please DO NOT EDIT */\n\n";
 
       printf "#ifndef %s\n" h_name;
@@ -866,6 +931,16 @@ let () =
       and mdfh = get_float "max_dist_from_home"
       and alt = ExtXml.attrib xml "alt" in
       security_height := get_float "security_height";
+      begin
+        try
+          if security_height < ref 0. then
+            begin
+              fprintf stderr "\nError: Security height cannot be negative (%.0f)\n" !security_height;
+              exit 1;
+            end
+        with
+          _ -> ()
+      end;
       ground_alt := get_float "ground_alt";
       let home_mode_height = try
                                max (get_float "home_mode_height") !security_height
@@ -890,8 +965,8 @@ let () =
       List.iter (check_distance (hx, hy) mdfh) waypoints;
       define_waypoints_indices waypoints;
 
-      Xml2h.define "WAYPOINTS" "{ \\";
-      List.iter (print_waypoint alt) waypoints;
+      Xml2h.define "WAYPOINTS_UTM" "{ \\";
+      List.iter (print_waypoint_utm alt) waypoints;
       lprintf "};\n";
       Xml2h.define "WAYPOINTS_ENU" "{ \\";
       List.iter (print_waypoint_enu utm0 alt) waypoints;
@@ -908,8 +983,8 @@ let () =
       Xml2h.define "NB_WAYPOINT" (string_of_int (List.length waypoints));
 
       Xml2h.define "FP_BLOCKS" "{ \\";
-      List.iter (fun b -> printf " { \"%s\" }, \\\n" (ExtXml.attrib b "name")) blocks;
-      lprintf "};\n";
+      List.iter (fun b -> printf " \"%s\" , \\\n" (ExtXml.attrib b "name")) blocks;
+      lprintf "} \n";
       Xml2h.define "NB_BLOCK" (string_of_int (List.length blocks));
 
       Xml2h.define "GROUND_ALT" (sof !ground_alt);
@@ -918,8 +993,71 @@ let () =
       Xml2h.define "SECURITY_ALT" (sof (!security_height +. !ground_alt));
       Xml2h.define "HOME_MODE_HEIGHT" (sof home_mode_height);
       Xml2h.define "MAX_DIST_FROM_HOME" (sof mdfh);
+      begin
+        try
+          let geofence_max_alt = get_float "geofence_max_alt" in
+          if geofence_max_alt < !ground_alt then
+            begin
+              fprintf stderr "\nError: Geofence max altitude below ground alt (%.0f < %.0f)\n" geofence_max_alt !ground_alt;
+              exit 1;
+            end
+          else if geofence_max_alt < (!ground_alt +. !security_height) then
+            begin
+              fprintf stderr "\nError: Geofence max altitude below security height (%.0f < (%.0f+%.0f))\n" geofence_max_alt !ground_alt !security_height;
+              exit 1;
+            end
+          else if geofence_max_alt < (!ground_alt +. home_mode_height) then
+            begin
+              fprintf stderr "\nError: Geofence max altitude below ground alt + home mode height (%.0f < (%.0f+%.0f))\n" geofence_max_alt !ground_alt home_mode_height;
+              exit 1;
+            end
+          else if geofence_max_alt < (float_of_string alt) then
+            fprintf stderr "\nWarning: Geofence max altitude below default waypoint alt (%.0f < %.0f)\n" geofence_max_alt (float_of_string alt);
+          Xml2h.define "GEOFENCE_MAX_ALTITUDE" (sof geofence_max_alt);
+          fprintf stderr "\nWarning: Geofence max altitude set to %.0f\n" geofence_max_alt;
+        with
+          _ -> ()
+      end;
+
+      begin 
+        try
+          let geofence_max_agl = get_float "geofence_max_agl" in
+          if geofence_max_agl < !security_height then
+            begin
+              fprintf stderr "\nError: Geofence max AGL below security height (%.0f < %.0f)\n" geofence_max_agl !security_height;
+              exit 1;
+            end
+          else if geofence_max_agl < home_mode_height then
+            begin
+              fprintf stderr "\nError: Geofence max AGL below home mode height (%.0f < %.0f)\n" geofence_max_agl home_mode_height;
+              exit 1;
+            end
+          else if (geofence_max_agl +. !ground_alt) < (float_of_string alt) then
+            fprintf stderr "\nWarning: Geofence max AGL below default waypoint AGL (%.0f < %.0f)\n" (geofence_max_agl +. !ground_alt) (float_of_string alt);
+          Xml2h.define "GEOFENCE_MAX_AGL" (sof geofence_max_agl);
+          fprintf stderr "\nWarning: Geofence max AGL set to %.0f\n" geofence_max_agl;
+        with
+          _ -> ()
+      end;
+
+
+      (* output settings file if needed *)
+      begin
+        match !set_file with
+        | Some f ->
+            let out_set = open_out f in
+            write_settings !xml_file out_set variables;
+            close_out out_set
+        | None -> ()
+      end;
+      lprintf "\n";
+      let variables = parse_variables variables in
+      List.iter (fun (t, v, _) -> printf "extern %s %s;\n" t v) variables;
 
       lprintf "\n#ifdef NAV_C\n\n";
+
+      List.iter (fun (t, v, i) -> printf "%s %s = %s;\n" t v i) variables;
+      lprintf "\n";
 
       let index_of_waypoints =
         let i = ref (-1) in
@@ -946,8 +1084,8 @@ let () =
 
       begin
         try
-          let airspace = Xml.attrib xml "airspace" in
-          lprintf "#define InAirspace(_x, _y) %s(_x, _y)\n" (inside_function airspace)
+          let geofence_sector = Xml.attrib xml "geofence_sector" in
+          lprintf "#define InGeofenceSector(_x, _y) %s(_x, _y)\n" (inside_function geofence_sector)
         with
             _ -> ()
       end;

@@ -19,7 +19,7 @@
  */
 
 /**
- * @file modules/ctrl/vertical_ctrl_module_demo.c
+ * @file modules/ctrl/vertical_ctrl_module_demo.h
  * @brief example vertical
  *
  * Implements an example vertical controller in a module.
@@ -49,6 +49,6 @@ extern struct VerticalCtrlDemo v_ctrl;
 // Implement own Vertical loops
 extern void guidance_v_module_init(void);
 extern void guidance_v_module_enter(void);
-extern void guidance_v_module_run(bool_t in_flight);
+extern void guidance_v_module_run(bool in_flight);
 
 #endif /* VERTICAL_CTRL_MODULE_DEMO_H_ */

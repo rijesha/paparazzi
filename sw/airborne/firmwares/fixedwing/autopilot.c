@@ -39,10 +39,10 @@
 #include "pprz_version.h"
 
 uint8_t pprz_mode;
-bool_t kill_throttle;
+bool kill_throttle;
 uint8_t  mcu1_status;
 
-bool_t launch;
+bool launch;
 
 /** flight time in seconds. */
 uint16_t autopilot_flight_time;
@@ -53,9 +53,9 @@ uint16_t vsupply;
 int32_t current;
 float energy;
 
-bool_t gps_lost;
+bool gps_lost;
 
-bool_t power_switch;
+bool power_switch;
 
 #if PERIODIC_TELEMETRY
 #include "subsystems/datalink/telemetry.h"
@@ -175,15 +175,15 @@ void autopilot_send_mode(void)
 void autopilot_init(void)
 {
   pprz_mode = PPRZ_MODE_AUTO2;
-  kill_throttle = FALSE;
-  launch = FALSE;
+  kill_throttle = false;
+  launch = false;
   autopilot_flight_time = 0;
 
   lateral_mode = LATERAL_MODE_MANUAL;
 
-  gps_lost = FALSE;
+  gps_lost = false;
 
-  power_switch = FALSE;
+  power_switch = false;
 #ifdef POWER_SWITCH_GPIO
   gpio_setup_output(POWER_SWITCH_GPIO);
   gpio_clear(POWER_SWITCH_GPIO);
@@ -191,18 +191,18 @@ void autopilot_init(void)
 
 #if PERIODIC_TELEMETRY
   /* register some periodic message */
-  register_periodic_telemetry(DefaultPeriodic, "AUTOPILOT_VERSION", send_autopilot_version);
-  register_periodic_telemetry(DefaultPeriodic, "ALIVE", send_alive);
-  register_periodic_telemetry(DefaultPeriodic, "PPRZ_MODE", send_mode);
-  register_periodic_telemetry(DefaultPeriodic, "ATTITUDE", send_attitude);
-  register_periodic_telemetry(DefaultPeriodic, "ESTIMATOR", send_estimator);
-  register_periodic_telemetry(DefaultPeriodic, "AIRSPEED", send_airspeed);
-  register_periodic_telemetry(DefaultPeriodic, "BAT", send_bat);
-  register_periodic_telemetry(DefaultPeriodic, "ENERGY", send_energy);
-  register_periodic_telemetry(DefaultPeriodic, "DL_VALUE", send_dl_value);
-  register_periodic_telemetry(DefaultPeriodic, "DESIRED", send_desired);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_AUTOPILOT_VERSION, send_autopilot_version);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_ALIVE, send_alive);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_PPRZ_MODE, send_mode);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_ATTITUDE, send_attitude);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_ESTIMATOR, send_estimator);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_AIRSPEED, send_airspeed);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_BAT, send_bat);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_ENERGY, send_energy);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_DL_VALUE, send_dl_value);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_DESIRED, send_desired);
 #if defined RADIO_CALIB && defined RADIO_CONTROL_SETTINGS
-  register_periodic_telemetry(DefaultPeriodic, "RC_SETTINGS", send_rc_settings);
+  register_periodic_telemetry(DefaultPeriodic, PPRZ_MSG_ID_RC_SETTINGS, send_rc_settings);
 #endif
 #endif
 }

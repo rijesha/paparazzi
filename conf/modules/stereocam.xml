@@ -1,6 +1,6 @@
  <!DOCTYPE module SYSTEM "module.dtd">
 
- <module name="stereocam" dir="sensors">
+ <module name="stereocam" dir="stereocam">
   <doc>
     <description>
       StereoCamera read and decode.
@@ -19,12 +19,11 @@
   </header>
   <periodic fun="stereocam_periodic()" start="stereocam_start()" stop="stereocam_stop()" autorun="TRUE" freq="512"/>
   <makefile>
-    <raw>
-      STEREO_UART_LOWER=$(shell echo $(STEREO_UART) | tr A-Z a-z)
-    </raw>
-    <define name="USE_$(STEREO_UART)"/>
+    <file name="stereoprotocol.c" dir="modules/stereocam"/>
+    <configure name="STEREO_UART" case="upper|lower"/>
+    <define name="USE_$(STEREO_UART_UPPER)"/>
     <define name="UART_LINK" value="$(STEREO_UART_LOWER)"/>
-    <define name="$(STEREO_UART)_BAUD" value="$(STEREO_BAUD)"/>
+    <define name="$(STEREO_UART_UPPER)_BAUD" value="$(STEREO_BAUD)"/>
     <file name="stereocam.c"/>
   </makefile>
  </module>

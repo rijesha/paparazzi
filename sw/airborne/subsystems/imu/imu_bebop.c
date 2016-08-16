@@ -21,7 +21,7 @@
 
 /**
  * @file subsystems/imu/imu_bebop.c
- * Driver for the Bebop magnetometer, accelerometer and gyroscope
+ * Driver for the Bebop (2) magnetometer, accelerometer and gyroscope
  */
 
 #include "subsystems/imu.h"
@@ -120,7 +120,7 @@ void imu_bebop_event(void)
     VECT3_ASSIGN(imu.accel_unscaled, imu_bebop.mpu.data_accel.vect.x, -imu_bebop.mpu.data_accel.vect.y,
                  -imu_bebop.mpu.data_accel.vect.z);
 
-    imu_bebop.mpu.data_available = FALSE;
+    imu_bebop.mpu.data_available = false;
     imu_scale_gyro(&imu);
     imu_scale_accel(&imu);
     AbiSendMsgIMU_GYRO_INT32(IMU_BOARD_ID, now_ts, &imu.gyro);
@@ -131,10 +131,14 @@ void imu_bebop_event(void)
   ak8963_event(&imu_bebop.ak);
 
   if (imu_bebop.ak.data_available) {
-    //32760 to -32760
+#if BEBOP_VERSION2
+    // In the second bebop version the magneto is turned 90 degrees
+    VECT3_ASSIGN(imu.mag_unscaled, -imu_bebop.ak.data.vect.x, -imu_bebop.ak.data.vect.y, imu_bebop.ak.data.vect.z);
+#else //BEBOP regular first verion
     VECT3_ASSIGN(imu.mag_unscaled, -imu_bebop.ak.data.vect.y, imu_bebop.ak.data.vect.x, imu_bebop.ak.data.vect.z);
+#endif
 
-    imu_bebop.ak.data_available = FALSE;
+    imu_bebop.ak.data_available = false;
     imu_scale_mag(&imu);
     AbiSendMsgIMU_MAG_INT32(IMU_BOARD_ID, now_ts, &imu.mag);
   }

@@ -143,7 +143,7 @@ float stabilization_attitude_get_heading_f(void)
 
   float heading;
 
-  if (abs(att->phi) < M_PI / 2) {
+  if (fabsf(att->phi) < M_PI / 2) {
     heading = att->psi - sinf(att->theta) * att->phi;
   } else if (att->theta > 0) {
     heading = att->psi - att->phi;
@@ -161,8 +161,8 @@ float stabilization_attitude_get_heading_f(void)
  * @param[in]  in_flight         true if in flight
  * @param[out] sp                attitude setpoint as euler angles
  */
-void stabilization_attitude_read_rc_setpoint_eulers(struct Int32Eulers *sp, bool_t in_flight, bool_t in_carefree,
-    bool_t coordinated_turn)
+void stabilization_attitude_read_rc_setpoint_eulers(struct Int32Eulers *sp, bool in_flight, bool in_carefree,
+    bool coordinated_turn)
 {
   /* last time this function was called, used to calculate yaw setpoint update */
   static float last_ts = 0.f;
@@ -241,8 +241,8 @@ void stabilization_attitude_read_rc_setpoint_eulers(struct Int32Eulers *sp, bool
 }
 
 
-void stabilization_attitude_read_rc_setpoint_eulers_f(struct FloatEulers *sp, bool_t in_flight, bool_t in_carefree,
-    bool_t coordinated_turn)
+void stabilization_attitude_read_rc_setpoint_eulers_f(struct FloatEulers *sp, bool in_flight, bool in_carefree,
+    bool coordinated_turn)
 {
   /* last time this function was called, used to calculate yaw setpoint update */
   static float last_ts = 0.f;
@@ -267,7 +267,7 @@ void stabilization_attitude_read_rc_setpoint_eulers_f(struct FloatEulers *sp, bo
       //Take v = 9.81/1.3 m/s
       float omega;
       const float max_phi = RadOfDeg(85.0);
-      if (abs(sp->phi) < max_phi) {
+      if (fabsf(sp->phi) < max_phi) {
         omega = 1.3 * tanf(sp->phi);
       } else { //max 60 degrees roll, then take constant omega
         omega = 1.3 * 1.72305 * ((sp->phi > 0) - (sp->phi < 0));
@@ -364,8 +364,8 @@ void stabilization_attitude_read_rc_roll_pitch_earth_quat_f(struct FloatQuat *q)
  * @param[in]  in_flight         true if in flight
  * @param[out] q_sp              attitude setpoint as quaternion
  */
-void stabilization_attitude_read_rc_setpoint_quat_f(struct FloatQuat *q_sp, bool_t in_flight, bool_t in_carefree,
-    bool_t coordinated_turn)
+void stabilization_attitude_read_rc_setpoint_quat_f(struct FloatQuat *q_sp, bool in_flight, bool in_carefree,
+    bool coordinated_turn)
 {
 
   // FIXME: remove me, do in quaternion directly
@@ -417,8 +417,8 @@ void stabilization_attitude_read_rc_setpoint_quat_f(struct FloatQuat *q_sp, bool
 }
 
 //Function that reads the rc setpoint in an earth bound frame
-void stabilization_attitude_read_rc_setpoint_quat_earth_bound_f(struct FloatQuat *q_sp, bool_t in_flight,
-    bool_t in_carefree, bool_t coordinated_turn)
+void stabilization_attitude_read_rc_setpoint_quat_earth_bound_f(struct FloatQuat *q_sp, bool in_flight,
+    bool in_carefree, bool coordinated_turn)
 {
   // FIXME: remove me, do in quaternion directly
   // is currently still needed, since the yaw setpoint integration is done in eulers

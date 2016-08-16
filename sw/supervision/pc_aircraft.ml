@@ -53,7 +53,7 @@ let write_conf_xml = fun ?(user_save = false) () ->
   let l = Hashtbl.fold (fun _ a r -> a::r) Utils.aircrafts [] in
   let l = List.sort (fun ac1 ac2 -> compare (Xml.attrib ac1 "name") (Xml.attrib ac2 "name")) l in
   let c = Xml.Element ("conf", [], l) in
-  if c <> Xml.parse_file Utils.conf_xml_file then begin
+  if c <> ExtXml.parse_file Utils.conf_xml_file then begin
     if not (Sys.file_exists Utils.backup_xml_file) then
       ignore (Sys.command (sprintf "cp %s %s" Utils.conf_xml_file Utils.backup_xml_file));
     let f = open_out Utils.conf_xml_file in
@@ -165,9 +165,9 @@ let save_callback = fun ?user_save gui ac_combo tree tree_modules () ->
 type selected_t = Selected | Unselected | Unknown
 
 (* Get the settings (string list) with current modules *)
-let get_settings_modules = fun ac_xml settings_modules ->
+let get_settings_modules = fun ac_xml fp_xml settings_modules ->
   (* get modules *)
-  let modules = Gen_common.get_modules_of_airframe ac_xml in
+  let modules = Gen_common.get_modules_of_config ac_xml fp_xml in
   let modules = List.map (fun m -> m.Gen_common.xml, m.Gen_common.file ) modules in
   (* get list of settings files *)
   let settings = List.fold_left (fun l (m, f) ->
@@ -234,7 +234,7 @@ let parse_ac_targets = fun target_combo ac_file (log:string->unit) ->
   store#clear ();
   (* add targets *)
   try
-    let af_xml = Xml.parse_file (Env.paparazzi_home // "conf" // ac_file) in
+    let af_xml = ExtXml.parse_file (Env.paparazzi_home // "conf" // ac_file) in
     let targets = get_targets_list af_xml in
     if List.length targets > 0 then
       List.iter (fun t -> Gtk_tools.add_to_combo target_combo (Xml.attrib t "name")) targets
@@ -256,7 +256,7 @@ let parse_ac_flash = fun target flash_combo ac_file ->
   store#clear ();
   Gtk_tools.add_to_combo flash_combo "Default";
   try
-    let af_xml = Xml.parse_file (Env.paparazzi_home // "conf" // ac_file) in
+    let af_xml = ExtXml.parse_file (Env.paparazzi_home // "conf" // ac_file) in
     let targets = get_targets_list af_xml in
     let board = Xml.attrib (List.find (fun t -> Xml.attrib t "name" = target) targets) "board" in
     (* board names as regexp *)
@@ -316,8 +316,10 @@ let ac_combo_handler = fun gui (ac_combo:Gtk_tools.combo) target_combo flash_com
           log (sprintf "Error airframe file not found: %s\n" x);
           Xml.Element ("airframe", [], []);
       in
+      let fp_file = (Env.paparazzi_home // "conf" // (Xml.attrib aircraft "flight_plan")) in
+      let fp_xml = ExtXml.parse_file fp_file in
       let settings_modules = try
-        get_settings_modules af_xml (ExtXml.attrib_or_default aircraft "settings_modules" "")
+        get_settings_modules af_xml fp_xml (ExtXml.attrib_or_default aircraft "settings_modules" "")
       with
       | Failure x -> prerr_endline x; []
       | _ -> []
@@ -373,34 +375,76 @@ let ac_combo_handler = fun gui (ac_combo:Gtk_tools.combo) target_combo flash_com
   (* New A/C button *)
   let callback = fun _ ->
     match GToolbox.input_string ~title:"New A/C" ~text:"MYAC" "New A/C name ?" with
-      None -> ()
+    | None -> ()
     | Some s ->
-	if not (correct_ac_name s) then
-	  GToolbox.message_box ~title:"Error on A/C nae" "A/C name must contain only letters, digits or underscores"
-	else begin
-	  Gtk_tools.add_to_combo ac_combo s;
-	  let a = aircraft_sample s (string_of_int (new_ac_id ())) in
-	  Hashtbl.add Utils.aircrafts s a;
-	  update_params s
-	end
+        if not (correct_ac_name s) then
+          GToolbox.message_box ~title:"Error on A/C name" "A/C name must contain only letters, digits or underscores"
+        else if (Hashtbl.mem Utils.aircrafts s) then
+          GToolbox.message_box ~title:"Error on A/C name" "A/C name already exists in this conf"
+        else begin
+          let a = aircraft_sample s (string_of_int (new_ac_id ())) in
+          (* add to hashtbl before combo to avoid update errors *)
+          Hashtbl.add Utils.aircrafts s a;
+          Gtk_tools.add_to_combo ac_combo s;
+          update_params s
+      end
   in
   ignore (gui#menu_item_new_ac#connect#activate ~callback);
+
+  (* Copy A/C button *)
+  let callback = fun _ ->
+    let selected_ac_name = Gtk_tools.combo_value ac_combo in
+    if selected_ac_name <> "" then
+      match GToolbox.input_string ~title:"Copy A/C" ~text:"MYAC" "New A/C name ?" with
+      | None -> ()
+      | Some s ->
+          if not (correct_ac_name s) then
+            GToolbox.message_box ~title:"Error on A/C name" "A/C name must contain only letters, digits or underscores"
+          else if (Hashtbl.mem Utils.aircrafts s) then
+            GToolbox.message_box ~title:"Error on A/C name" "A/C name already exists in this conf"
+          else begin
+            let a = Hashtbl.find Utils.aircrafts selected_ac_name in
+            let af_old = Env.paparazzi_home // "conf" // (ExtXml.attrib a "airframe") in
+            let af_new =
+              match GToolbox.select_file ~title:"Copy to new airframe file" ~filename:af_old () with
+              | None -> af_old
+              | Some x -> x
+            in
+            let af_new =
+              if af_old = af_new then af_new
+              else
+                if Sys.command (sprintf "cp -f %s %s" af_old af_new) = 0 then af_new
+                else begin
+                  GToolbox.message_box ~title:"Error on airframe copy" ("Using original airframe " // af_old);
+                  af_old
+                end
+            in
+            let a = ExtXml.subst_attrib "name" s a in
+            let a = ExtXml.subst_attrib "airframe" (Env.filter_absolute_path af_new) a in
+            let a = ExtXml.subst_attrib "ac_id" (string_of_int (new_ac_id ())) a in
+            (* add to hashtbl before combo to avoid update errors *)
+            Hashtbl.add Utils.aircrafts s a;
+            Gtk_tools.add_to_combo ac_combo s;
+            update_params s
+        end
+  in
+  ignore (gui#menu_item_copy_ac#connect#activate ~callback);
 
   (* Delete A/C *)
   let callback = fun _ ->
     let ac_name = Gtk_tools.combo_value ac_combo in
     if ac_name <> "" then
       match GToolbox.question_box ~title:"Delete A/C" ~buttons:["Cancel"; "Delete"] ~default:2 (sprintf "Delete %s ? (no undo after Save)" ac_name) with
-	2 -> begin
-	  begin try Hashtbl.remove Utils.aircrafts ac_name with _ -> () end;
-	  let combo_box = Gtk_tools.combo_widget ac_combo in
-	  match combo_box#active_iter with
-	  | None -> ()
-	  | Some row ->
-	      let (store, _column) = Gtk_tools.combo_model ac_combo in
-	      ignore (store#remove row);
-	      combo_box#set_active 1
-	end
+      | 2 -> begin
+          begin try Hashtbl.remove Utils.aircrafts ac_name with _ -> () end;
+          let combo_box = Gtk_tools.combo_widget ac_combo in
+          match combo_box#active_iter with
+          | None -> ()
+          | Some row ->
+              let (store, _column) = Gtk_tools.combo_model ac_combo in
+              ignore (store#remove row);
+              combo_box#set_active 1
+        end
       | _ -> ()
   in
   ignore (gui#delete_ac_menu_item#connect#activate ~callback);
@@ -408,12 +452,12 @@ let ac_combo_handler = fun gui (ac_combo:Gtk_tools.combo) target_combo flash_com
   (* New Target button *)
   let callback = fun _ ->
     match GToolbox.input_string ~title:"New Target" ~text:"tunnel" "New build target ?" with
-      None -> ()
+    | None -> ()
     | Some s ->
-	let (store, column) = Gtk_tools.combo_model target_combo in
-	let row = store#append () in
-	store#set ~row ~column s;
-	(Gtk_tools.combo_widget target_combo)#set_active_iter (Some row)
+        let (store, column) = Gtk_tools.combo_model target_combo in
+        let row = store#append () in
+        store#set ~row ~column s;
+        (Gtk_tools.combo_widget target_combo)#set_active_iter (Some row)
   in
   ignore (gui#menu_item_new_target#connect#activate ~callback);
 

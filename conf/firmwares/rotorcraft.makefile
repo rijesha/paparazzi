@@ -33,9 +33,10 @@ SRC_ARCH=arch/$(ARCH)
 
 ROTORCRAFT_INC = -I$(SRC_FIRMWARE) -I$(SRC_BOARD)
 
-
 ap.ARCHDIR = $(ARCH)
 
+
+VPATH += $(PAPARAZZI_HOME)/var/share
 
 ######################################################################
 ##
@@ -78,14 +79,17 @@ endif
 #
 # Math functions
 #
+ifneq ($(TARGET), fbw)
 $(TARGET).srcs += math/pprz_geodetic_int.c math/pprz_geodetic_float.c math/pprz_geodetic_double.c math/pprz_trig_int.c math/pprz_orientation_conversion.c math/pprz_algebra_int.c math/pprz_algebra_float.c math/pprz_algebra_double.c
 
 $(TARGET).srcs += subsystems/settings.c
 $(TARGET).srcs += $(SRC_ARCH)/subsystems/settings_arch.c
+endif
 
 $(TARGET).srcs += subsystems/actuators.c
 $(TARGET).srcs += subsystems/commands.c
 
+ifneq ($(TARGET), fbw)
 $(TARGET).srcs += state.c
 
 #
@@ -96,7 +100,6 @@ include $(CFG_SHARED)/baro_board.makefile
 
 $(TARGET).srcs += $(SRC_FIRMWARE)/stabilization.c
 $(TARGET).srcs += $(SRC_FIRMWARE)/stabilization/stabilization_none.c
-$(TARGET).srcs += $(SRC_FIRMWARE)/stabilization/stabilization_rate.c
 
 $(TARGET).srcs += $(SRC_FIRMWARE)/guidance/guidance_h.c
 $(TARGET).srcs += $(SRC_FIRMWARE)/guidance/guidance_h_ref.c
@@ -106,17 +109,35 @@ $(TARGET).srcs += $(SRC_FIRMWARE)/guidance/guidance_v_adapt.c
 $(TARGET).srcs += $(SRC_FIRMWARE)/guidance/guidance_flip.c
 
 include $(CFG_ROTORCRAFT)/navigation.makefile
+else
+$(TARGET).CFLAGS += -DFBW=1
+endif
 
+#
+# Main
+#
+ifeq ($(RTOS), chibios)
+ ns_srcs += $(SRC_FIRMWARE)/main_chibios.c
+else
+ifneq ($(TARGET), fbw)
 $(TARGET).srcs += $(SRC_FIRMWARE)/main.c
 $(TARGET).srcs += $(SRC_FIRMWARE)/autopilot.c
+else
+$(TARGET).srcs += $(SRC_FIRMWARE)/main_fbw.c
+endif # TARGET == fbw
+endif # RTOS == ChibiOS
+
+
 
 ######################################################################
 ##
 ## COMMON HARDWARE SUPPORT FOR ALL TARGETS
 ##
 
+ifneq ($(TARGET), fbw)
 $(TARGET).srcs += mcu_periph/i2c.c
 $(TARGET).srcs += $(SRC_ARCH)/mcu_periph/i2c_arch.c
+endif
 
 include $(CFG_SHARED)/uart.makefile
 
@@ -151,6 +172,9 @@ ifeq ($(ARCH), stm32)
 ns_srcs += $(SRC_ARCH)/mcu_periph/gpio_arch.c
 endif
 
+ifeq ($(ARCH), chibios)
+ns_srcs       += $(SRC_ARCH)/mcu_periph/gpio_arch.c
+endif
 
 #
 # LEDs
@@ -188,3 +212,14 @@ endif
 
 ap.CFLAGS 		+= $(ns_CFLAGS)
 ap.srcs 		+= $(ns_srcs)
+fbw.CFLAGS 		+= $(ns_CFLAGS)
+fbw.srcs 		+= $(ns_srcs)
+
+######################################################################
+##
+## include firmware independent nps makefile and add rotorcraft specifics
+##
+include $(CFG_SHARED)/nps.makefile
+nps.srcs += nps/nps_autopilot_rotorcraft.c
+nps.srcs += $(SRC_FIRMWARE)/rotorcraft_telemetry.c
+nps.srcs += subsystems/datalink/datalink.c $(SRC_FIRMWARE)/rotorcraft_datalink.c

@@ -111,6 +111,10 @@
 #define MAG_HMC58XX_SENDER_ID 2
 #endif
 
+#ifndef IMU_MAG_PITOT_ID
+#define IMU_MAG_PITOT_ID 50
+#endif
+
 /*
  * IDs of GPS sensors
  */
@@ -158,6 +162,13 @@
 #define GPS_SIM_ID 11
 #endif
 
+#ifndef GPS_MULTI_ID
+#define GPS_MULTI_ID 12
+#endif
+
+#ifndef GPS_VECTORNAV_ID
+#define GPS_VECTORNAV_ID 13
+#endif
 
 /*
  * IDs of IMU sensors (accel, gyro)
@@ -225,5 +236,21 @@
 #ifndef IMU_MPU60X0_ID
 #define IMU_MPU60X0_ID 16
 #endif
+
+#ifndef PX4FLOW_VELOCITY_ID
+#define PX4FLOW_VELOCITY_ID 17
+#endif
+
+#ifndef IMU_PX4
+#define IMU_PX4_ID 18
+#endif
+
+/*
+ * IDs of RSSI measurements (message 13)
+ */
+#ifndef RSSI_BLUEGIGA_ID
+#define RSSI_BLUEGIGA_ID 1
+#endif
+
 
 #endif /* ABI_SENDER_IDS_H */
