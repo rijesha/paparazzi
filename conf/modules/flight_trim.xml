@@ -9,7 +9,7 @@
     <dl_settings name="flight_trim">
 
       <dl_setting min="0" max="1" step="1" values="OFF|CALIB" var="flight_trim.calib_rc" module="flight_trim/flight_trim" shortname="calcRC"/>
-      <dl_setting min="0" max="1" step="1" values="OFF|TRIM" var="flight_trim.calib_ac" module="flight_trim/flight_trim" shortname="trimAC"/>
+      <dl_setting min="0" max="1" step="1" values="OFF|TRIM" var="flight_trim.trim_ac" module="flight_trim/flight_trim" shortname="trimAC"/>
 
     </dl_settings>
   </dl_settings>

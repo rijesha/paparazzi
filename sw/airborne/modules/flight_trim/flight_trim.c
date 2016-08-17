@@ -24,13 +24,14 @@
  */
 
 #include "modules/flight_trim/flight_trim.h"
+#include "subsystems/radio_control.h"
 
-struct FlightTrim flight_trim
+struct FlightTrim flight_trim;
 
 void flight_trim_init(void)
 {
-  flight_trim.calib_rc = False;
-  flight_trim.trim_ac = False;
+  flight_trim.calib_rc = FALSE;
+  flight_trim.trim_ac = FALSE;
 }
 void flight_trim_event(void)
 {
@@ -45,13 +46,17 @@ void flight_trim_event(void)
 }
 void flight_trim_rc(void)
 {
-
-
-  flight_trim.calib_rc = False;
+  uint8_t i;
+  for (i = 0; i < 5; i++) {
+    if (i == RADIO_THROTTLE) {
+      radio_control.neutrals[i] += -radio_control.values[i];
+    } else {
+      radio_control.neutrals[i] += -radio_control.values[i];
+    }
+  }
+  flight_trim.calib_rc = FALSE;
 }
 void flight_trim_ac(void)
 {
-
-
-  flight_trim.calib_ac = False;
+  flight_trim.trim_ac = FALSE;
 }

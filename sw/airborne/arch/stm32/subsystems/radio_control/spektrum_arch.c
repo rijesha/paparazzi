@@ -444,6 +444,19 @@ static inline void SpektrumParser(uint8_t _c, SpektrumStateType *spektrum_state,
  * and calls callback funtion
  *
  *****************************************************************************/
+ void trim_transmitter(int16_t *offsets, int16_t *values)
+ {
+   uint8_t i;
+   for (i = 0; i < 4; i++) {
+     values[i] += offsets[i];
+     if (i == RADIO_THROTTLE) {
+       Bound(values[i], 0, MAX_PPRZ);
+     } else {
+       Bound(values[i], MIN_PPRZ, MAX_PPRZ);
+     }
+   }
+ }
+
 
 void RadioControlEventImp(void (*frame_handler)(void))
 {
@@ -538,6 +551,7 @@ void RadioControlEventImp(void (*frame_handler)(void))
         }
         radio_control.values[i] *= SpektrumSigns[i];
       }
+      trim_transmitter(radio_control.neutrals, radio_control.values);
       (*frame_handler)();
     }
   }

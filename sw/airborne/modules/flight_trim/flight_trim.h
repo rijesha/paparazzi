@@ -23,12 +23,14 @@
  * This module is designed to allow engaging AUTO2 on the first flight of you aircraft. It will fix a poorly calibrated transmitter and wi.
  */
 
+#include "std.h"
+
 #ifndef FLIGHT_TRIM_H
 #define FLIGHT_TRIM_H
 
 struct FlightTrim {
-  bool_t calib_rc;
-  bool_t trim_ac;
+  bool calib_rc;
+  bool trim_ac;
 };
 
 extern void flight_trim_init(void);
